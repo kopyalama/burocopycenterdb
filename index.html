@@ -1055,25 +1055,28 @@ input[type="number"] {
 </style>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-analytics.js";
 import { 
   getFirestore, 
   collection, 
   getDocs, 
   addDoc,
   serverTimestamp 
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAYgBx5T_7aS6IeV3f-T6KVjzZg6V5kRY0",
-  authDomain: "buro-copy-fiyat-listesi.firebaseapp.com",
-  projectId: "buro-copy-fiyat-listesi",
-  storageBucket: "buro-copy-fiyat-listesi.firebasestorage.app",
-  messagingSenderId: "969205548894",
-  appId: "1:969205548894:web:7ff904261fb355e85771cf"
+  apiKey: "AIzaSyDlNZ8FwFCwRIpBcwcL_3THqxkGBkZOvc0",
+  authDomain: "buro-copy-db.firebaseapp.com",
+  projectId: "buro-copy-db",
+  storageBucket: "buro-copy-db.firebasestorage.app",
+  messagingSenderId: "10351534107",
+  appId: "1:10351534107:web:75dd81435cc2b7240598be",
+  measurementId: "G-49SZW90WED"
 };
 
 const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 const db = getFirestore(app);
 
 let products = {};
