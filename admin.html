@@ -1816,11 +1816,38 @@ async function loadCariTransactions() {
     const q = query(cariRef, orderBy("timestamp", "desc"));
     
     // Verileri al
-    const querySnapshot = await getDocs(q);
-    console.log(`📊 ${querySnapshot.size} cari işlem bulundu`);
-    
-    cariTransactions = [];
-    cariTableBody.innerHTML = "";
+    onSnapshot(q, (querySnapshot) => {
+
+  console.log(querySnapshot.size + " cari işlem bulundu");
+
+  cariTransactions = [];
+  cariTableBody.innerHTML = "";
+
+  if (querySnapshot.empty) {
+    cariTableBody.innerHTML = `
+      <tr>
+        <td colspan="7">Henüz cari işlem yok</td>
+      </tr>
+    `;
+    return;
+  }
+
+  querySnapshot.forEach((doc) => {
+
+    const data = doc.data();
+    cariTransactions.push(data);
+
+    const row = document.createElement("tr");
+
+    row.innerHTML = `
+      <td>${data.customerName}</td>
+      <td>${data.productName}</td>
+      <td>${data.quantity}</td>
+      <td>${data.unitPrice}</td>
+      <td>${data.totalPrice}</td>
+    `;
+
+    cariTableBody.appendChild(row);
     
     if (querySnapshot.empty) {
       console.log("ℹ️ Henüz cari hesap işlemi yok");
@@ -2832,3 +2859,4 @@ document.addEventListener('DOMContentLoaded', function() {
 </body>
 
 </html>
+
