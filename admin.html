@@ -1816,6 +1816,7 @@ async function loadCariTransactions() {
     const q = query(cariRef, orderBy("timestamp", "desc"));
     
     // Verileri al
+    import { onSnapshot } from "firebase/firestore";
     onSnapshot(q, (querySnapshot) => {
 
   console.log(querySnapshot.size + " cari işlem bulundu");
@@ -2859,4 +2860,5 @@ document.addEventListener('DOMContentLoaded', function() {
 </body>
 
 </html>
+
 
