@@ -1322,10 +1322,72 @@ function calculateCariPrice() {
   document.getElementById("cariUnitPrice").value = unitPrice > 0 ? unitPrice.toFixed(2) : "";
 }
 
-async function saveCariTransaction() {
-  if (loading) {
-    showNotification("Ürünler yükleniyor, lütfen bekleyin...", "warning");
+window.saveCariTransaction = async function () {
+
+  const customerName = document.getElementById("customerName").value.trim();
+  const productSelect = document.getElementById("cariProduct");
+  const selectedProduct = productSelect.value;
+  const p = products[selectedProduct];
+
+  const qty = Number(document.getElementById("cariAmount").value);
+  const unitPrice = parseFloat(document.getElementById("cariUnitPrice").value);
+
+  if (!customerName) {
+    showNotification("Müşteri adı girin", "warning");
     return;
+  }
+
+  if (!p) {
+    showNotification("Ürün seçin", "warning");
+    return;
+  }
+
+  if (!qty || qty <= 0) {
+    showNotification("Geçerli miktar girin", "warning");
+    return;
+  }
+
+  if (!unitPrice || unitPrice <= 0) {
+    showNotification("Geçerli fiyat girin", "warning");
+    return;
+  }
+
+  const totalPrice = unitPrice * qty;
+
+  try {
+
+    const transactionData = {
+      customerName: customerName,
+      productId: selectedProduct,
+      productName: p.name,
+      quantity: qty,
+      unit: p.unit,
+      unitPrice: unitPrice,
+      totalPrice: totalPrice,
+      timestamp: serverTimestamp(),
+      date: new Date().toISOString().split("T")[0],
+      time: new Date().toLocaleTimeString("tr-TR")
+    };
+
+    await addDoc(collection(db, "cari_hesap"), transactionData);
+
+    showNotification("Cari hesap kaydedildi", "success");
+
+    document.getElementById("customerName").value = "";
+    document.getElementById("cariProduct").selectedIndex = 0;
+    document.getElementById("cariAmount").value = "";
+    document.getElementById("cariUnitPrice").value = "";
+
+    loadRecentTransactions();
+
+  } catch (error) {
+
+    console.error(error);
+    showNotification("Kayıt hatası oluştu", "error");
+
+  }
+
+};
   }
   
   const customerName = document.getElementById("customerName").value.trim();
