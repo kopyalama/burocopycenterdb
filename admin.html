@@ -1816,39 +1816,11 @@ async function loadCariTransactions() {
     const q = query(cariRef, orderBy("timestamp", "desc"));
     
     // Verileri al
-    import { onSnapshot } from "firebase/firestore";
-    onSnapshot(q, (querySnapshot) => {
-
-  console.log(querySnapshot.size + " cari işlem bulundu");
-
-  cariTransactions = [];
-  cariTableBody.innerHTML = "";
-
-  if (querySnapshot.empty) {
-    cariTableBody.innerHTML = `
-      <tr>
-        <td colspan="7">Henüz cari işlem yok</td>
-      </tr>
-    `;
-    return;
-  }
-
-  querySnapshot.forEach((doc) => {
-
-    const data = doc.data();
-    cariTransactions.push(data);
-
-    const row = document.createElement("tr");
-
-    row.innerHTML = `
-      <td>${data.customerName}</td>
-      <td>${data.productName}</td>
-      <td>${data.quantity}</td>
-      <td>${data.unitPrice}</td>
-      <td>${data.totalPrice}</td>
-    `;
-
-    cariTableBody.appendChild(row);
+    const querySnapshot = await getDocs(q);
+    console.log(`📊 ${querySnapshot.size} cari işlem bulundu`);
+    
+    cariTransactions = [];
+    cariTableBody.innerHTML = "";
     
     if (querySnapshot.empty) {
       console.log("ℹ️ Henüz cari hesap işlemi yok");
@@ -2541,7 +2513,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Tarayıcı konsolunu açık bırakmak için mesaj
   console.log("🔧 Hata ayıklama için konsolu açık tutun!");
-  console.log("🔄 :", db ? "✅ Bağlı" : "❌ Bağlı Değil");
+  console.log("🔄 Firebase durumu:", db ? "✅ Bağlı" : "❌ Bağlı Değil");
 });
 </script>
 </head>
@@ -2843,6 +2815,21 @@ document.addEventListener('DOMContentLoaded', function() {
           <p id="stats-updated">-</p>
         </div>
       </div>
+      
+      <div class="panel-header" style="margin-top: 32px;">
+        <i class="fas fa-info-circle"></i>
+        <h2>Firebase Durumu</h2>
+      </div>
+      
+      <div style="color: var(--text-secondary); line-height: 1.6; font-size: 14px;">
+        <p><strong>Project ID:</strong> buro-copy-db</p>
+        <p><strong>API Key:</strong> AIzaSyDlNZ8FwFCwRIpBcwcL_3THqxkGBkZOvc0</p>
+        <p><strong>Domain:</strong> buro-copy-db.firebaseapp.com</p>
+        <p><strong>Koleksiyon Adı:</strong> products, cari_hesap</p>
+        <p><strong>Tarayıcı Konsolu:</strong> F12'ye basıp "Console" sekmesini açın</p>
+      </div>
+    </div>
+  </div>
 
   <!-- Footer -->
   <div class="glass-panel" style="margin-top: 32px; text-align: center;">
@@ -2858,7 +2845,4 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 </body>
-
 </html>
-
-
