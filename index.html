@@ -190,57 +190,6 @@ body::before {
   }
 }
 
-/* Tabs */
-.tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding-bottom: 8px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.tab-btn {
-  padding: 12px 24px;
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  font-weight: 600;
-  font-size: 15px;
-  cursor: pointer;
-  border-radius: 12px;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  white-space: nowrap;
-  -webkit-tap-highlight-color: rgba(124, 58, 237, 0.3);
-}
-
-.tab-btn i {
-  font-size: 16px;
-}
-
-.tab-btn:hover {
-  color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.tab-btn.active {
-  color: var(--primary);
-  background: rgba(124, 58, 237, 0.15);
-  border-bottom: 2px solid var(--primary);
-}
-
-.tab-content {
-  display: none;
-}
-
-.tab-content.active {
-  display: block;
-}
-
 /* Glass Panel - iOS Optimize */
 .glass-panel {
   background: rgba(15, 23, 42, 0.85);
@@ -1135,30 +1084,6 @@ let loading = true;
 let cart = [];
 let currentTransactions = [];
 
-// Sekme değiştirme fonksiyonu
-window.switchTab = function(tabId) {
-  // Tüm sekmeleri gizle
-  document.querySelectorAll('.tab-content').forEach(tab => {
-    tab.classList.remove('active');
-  });
-  // Tüm butonların aktif sınıfını kaldır
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.classList.remove('active');
-  });
-  
-  // Seçilen sekmeyi göster
-  document.getElementById(tabId).classList.add('active');
-  
-  // Tıklanan butonu aktif yap
-  const activeBtn = document.querySelector(`[data-tab="${tabId}"]`);
-  if (activeBtn) activeBtn.classList.add('active');
-  
-  // Cari hesap sekmesine geçildiyse son işlemleri yenile (isteğe bağlı)
-  if (tabId === 'cari-tab') {
-    loadRecentTransactions();
-  }
-};
-
 async function loadProducts() {
   const select = document.getElementById("product");
   const cariProductSelect = document.getElementById("cariProduct");
@@ -1222,13 +1147,16 @@ function calculate() {
     return;
   }
 
+  // Birim bilgisini güncelle
   document.getElementById("unitDisplay").innerText = p.unit;
   document.getElementById("amountDisplay").innerText = qty;
   document.getElementById("unitDisplay2").innerText = p.unit;
   
+  // Doğru kademeyi bul
   let unitPrice = 0;
   let applicableTier = null;
   
+  // Kademeleri min değere göre sırala (büyükten küçüğe)
   const sortedTiers = [...p.tiers].sort((a, b) => b.min - a.min);
   
   for (const tier of sortedTiers) {
@@ -1239,9 +1167,17 @@ function calculate() {
     }
   }
   
+  // Eğer hiçbir kademeye uymuyorsa, en düşük kademeyi kullan
+  if (!applicableTier && p.tiers.length > 0) {
+    unitPrice = 0;
+    applicableTier = null;
+  }
+  
+  // Sonuçları göster
   document.getElementById("unitPrice").innerText = unitPrice > 0 ? unitPrice.toFixed(2) : "-";
   document.getElementById("total").innerText = unitPrice > 0 ? (unitPrice * qty).toFixed(2) : "-";
   
+  // Kademe bilgisini göster
   const tierInfo = document.getElementById("tierInfo");
   if (applicableTier) {
     tierInfo.innerHTML = `
@@ -1262,6 +1198,7 @@ function calculate() {
     document.getElementById("total").innerText = "-";
   }
   
+  // Tüm kademeleri göster
   updateTierTable(p.tiers, p.unit, qty);
 }
 
@@ -1280,6 +1217,7 @@ function updateTierTable(tiers, unit, currentQty) {
     return;
   }
   
+  // Kademeleri min değere göre sırala (küçükten büyüğe)
   const sortedTiers = [...tiers].sort((a, b) => a.min - b.min);
   
   sortedTiers.forEach((tier, index) => {
@@ -1296,6 +1234,7 @@ function updateTierTable(tiers, unit, currentQty) {
   });
 }
 
+// CARİ HESAP FONKSİYONLARI
 function calculateCariPrice() {
   if (loading) return;
   
@@ -1309,7 +1248,10 @@ function calculateCariPrice() {
     return;
   }
 
+  // Doğru kademeyi bul
   let unitPrice = 0;
+  
+  // Kademeleri min değere göre sırala (büyükten küçüğe)
   const sortedTiers = [...p.tiers].sort((a, b) => b.min - a.min);
   
   for (const tier of sortedTiers) {
@@ -1319,75 +1261,14 @@ function calculateCariPrice() {
     }
   }
   
+  // Birim fiyatı göster
   document.getElementById("cariUnitPrice").value = unitPrice > 0 ? unitPrice.toFixed(2) : "";
 }
 
-window.saveCariTransaction = async function () {
-
-  const customerName = document.getElementById("customerName").value.trim();
-  const productSelect = document.getElementById("cariProduct");
-  const selectedProduct = productSelect.value;
-  const p = products[selectedProduct];
-
-  const qty = Number(document.getElementById("cariAmount").value);
-  const unitPrice = parseFloat(document.getElementById("cariUnitPrice").value);
-
-  if (!customerName) {
-    showNotification("Müşteri adı girin", "warning");
+async function saveCariTransaction() {
+  if (loading) {
+    showNotification("Ürünler yükleniyor, lütfen bekleyin...", "warning");
     return;
-  }
-
-  if (!p) {
-    showNotification("Ürün seçin", "warning");
-    return;
-  }
-
-  if (!qty || qty <= 0) {
-    showNotification("Geçerli miktar girin", "warning");
-    return;
-  }
-
-  if (!unitPrice || unitPrice <= 0) {
-    showNotification("Geçerli fiyat girin", "warning");
-    return;
-  }
-
-  const totalPrice = unitPrice * qty;
-
-  try {
-
-    const transactionData = {
-      customerName: customerName,
-      productId: selectedProduct,
-      productName: p.name,
-      quantity: qty,
-      unit: p.unit,
-      unitPrice: unitPrice,
-      totalPrice: totalPrice,
-      timestamp: serverTimestamp(),
-      date: new Date().toISOString().split("T")[0],
-      time: new Date().toLocaleTimeString("tr-TR")
-    };
-
-    await addDoc(collection(db, "cari_hesap"), transactionData);
-
-    showNotification("Cari hesap kaydedildi", "success");
-
-    document.getElementById("customerName").value = "";
-    document.getElementById("cariProduct").selectedIndex = 0;
-    document.getElementById("cariAmount").value = "";
-    document.getElementById("cariUnitPrice").value = "";
-
-    loadRecentTransactions();
-
-  } catch (error) {
-
-    console.error(error);
-    showNotification("Kayıt hatası oluştu", "error");
-
-  }
-
-};
   }
   
   const customerName = document.getElementById("customerName").value.trim();
@@ -1397,6 +1278,7 @@ window.saveCariTransaction = async function () {
   const qty = Number(document.getElementById("cariAmount").value);
   const unitPrice = parseFloat(document.getElementById("cariUnitPrice").value);
   
+  // Validasyon
   if (!customerName) {
     showNotification("Lütfen müşteri adını girin!", "warning");
     return;
@@ -1420,6 +1302,7 @@ window.saveCariTransaction = async function () {
   const totalPrice = unitPrice * qty;
   
   try {
+    // Firestore'a kaydet
     const transactionData = {
       customerName: customerName,
       productId: selectedProduct,
@@ -1434,13 +1317,16 @@ window.saveCariTransaction = async function () {
     };
     
     await addDoc(collection(db, "cari_hesap"), transactionData);
+    
     showNotification("Cari hesap kaydı başarıyla eklendi!", "success");
     
+    // Formu temizle
     document.getElementById("customerName").value = "";
     document.getElementById("cariProduct").selectedIndex = 0;
     document.getElementById("cariAmount").value = "";
     document.getElementById("cariUnitPrice").value = "";
     
+    // Son işlemleri güncelle
     loadRecentTransactions();
     
   } catch (error) {
@@ -1465,6 +1351,7 @@ async function loadRecentTransactions() {
       return;
     }
     
+    // Son kayıtları sırala (yeniden eskiye)
     const transactions = [];
     snap.forEach(doc => {
       const data = doc.data();
@@ -1488,6 +1375,7 @@ async function loadRecentTransactions() {
       return b.date.localeCompare(a.date);
     });
     
+    // Son 10 kaydı göster
     const recentTransactions = transactions.slice(0, 10);
     
     tableBody.innerHTML = "";
@@ -1511,6 +1399,7 @@ async function loadRecentTransactions() {
   }
 }
 
+// Sepete ürün ekleme fonksiyonu
 window.addToCart = function() {
   if (loading) {
     showNotification("Ürünler yükleniyor, lütfen bekleyin...", "warning");
@@ -1527,6 +1416,7 @@ window.addToCart = function() {
     return;
   }
   
+  // Birim fiyatı hesapla
   let unitPrice = 0;
   const sortedTiers = [...p.tiers].sort((a, b) => b.min - a.min);
   for (const tier of sortedTiers) {
@@ -1541,6 +1431,7 @@ window.addToCart = function() {
     return;
   }
   
+  // Sepete ekle
   const cartItem = {
     id: selectedProduct,
     name: p.name,
@@ -1555,22 +1446,26 @@ window.addToCart = function() {
   updateCartDisplay();
   showNotification(`${p.name} sepete eklendi!`, "success");
   
+  // Formu sıfırla
   document.getElementById("amount").value = "";
   calculate();
 };
 
+// Hızlı miktar ekleme fonksiyonları
 window.quickAdd = function(amount) {
   const amountInput = document.getElementById("amount");
   amountInput.value = amount;
   calculate();
 };
 
+// Cari hesap için hızlı miktar ekleme
 window.quickAddCari = function(amount) {
   const amountInput = document.getElementById("cariAmount");
   amountInput.value = amount;
   calculateCariPrice();
 };
 
+// Sepet göstergesini güncelle
 function updateCartDisplay() {
   const cartTableBody = document.getElementById("cartTableBody");
   const cartTotalElement = document.getElementById("cartTotal");
@@ -1591,11 +1486,16 @@ function updateCartDisplay() {
     return;
   }
   
+  // Sepet panelini göster
   cartPanel.style.display = "block";
+  
+  // Sepet sayacını güncelle
   cartCountElement.innerText = cart.length;
   
+  // Toplam tutarı hesapla
   let total = 0;
   
+  // Tabloyu güncelle
   cartTableBody.innerHTML = "";
   cart.forEach((item, index) => {
     total += item.total;
@@ -1615,9 +1515,11 @@ function updateCartDisplay() {
     cartTableBody.appendChild(row);
   });
   
+  // Toplam tutarı güncelle
   cartTotalElement.innerText = total.toFixed(2);
 }
 
+// Sepetten ürün çıkarma
 window.removeFromCart = function(index) {
   if (index >= 0 && index < cart.length) {
     const removedItem = cart[index];
@@ -1627,6 +1529,7 @@ window.removeFromCart = function(index) {
   }
 };
 
+// Sepeti tamamen temizle
 window.clearCart = function() {
   if (cart.length === 0) {
     showNotification("Sepetiniz zaten boş!", "warning");
@@ -1640,6 +1543,7 @@ window.clearCart = function() {
   }
 };
 
+// Cari hesap miktarını artır/azalt
 window.incrementCariAmount = function() {
   const amountInput = document.getElementById("cariAmount");
   let currentValue = parseInt(amountInput.value) || 0;
@@ -1688,6 +1592,29 @@ function showNotification(message, type) {
   }, 5000);
 }
 
+// Sayfa yüklendiğinde ürünleri yükle
+window.onload = function() {
+  loadProducts();
+  loadRecentTransactions();
+  
+  // Miktar alanına otomatik hesaplama ekle
+  document.getElementById("amount").addEventListener("input", calculate);
+  document.getElementById("product").addEventListener("change", function() {
+    calculate();
+    
+    // Seçilen ürünün birimini al ve miktar placeholder'ını güncelle
+    const selectedOption = this.options[this.selectedIndex];
+    const unit = selectedOption.getAttribute("data-unit") || "adet";
+    document.getElementById("amount").placeholder = `Miktar (${unit} cinsinden)`;
+    document.getElementById("unitDisplay2").innerText = unit;
+  });
+  
+  // Cari hesap alanlarına dinleyiciler ekle
+  document.getElementById("cariProduct").addEventListener("change", calculateCariPrice);
+  document.getElementById("cariAmount").addEventListener("input", calculateCariPrice);
+};
+
+// Miktarı artır/azalt butonları
 window.incrementAmount = function() {
   const amountInput = document.getElementById("amount");
   let currentValue = parseInt(amountInput.value) || 0;
@@ -1704,26 +1631,10 @@ window.decrementAmount = function() {
   }
 };
 
+// Miktarı sıfırla
 window.resetAmount = function() {
   document.getElementById("amount").value = "";
   calculate();
-};
-
-window.onload = function() {
-  loadProducts();
-  loadRecentTransactions();
-  
-  document.getElementById("amount").addEventListener("input", calculate);
-  document.getElementById("product").addEventListener("change", function() {
-    calculate();
-    const selectedOption = this.options[this.selectedIndex];
-    const unit = selectedOption.getAttribute("data-unit") || "adet";
-    document.getElementById("amount").placeholder = `Miktar (${unit} cinsinden)`;
-    document.getElementById("unitDisplay2").innerText = unit;
-  });
-  
-  document.getElementById("cariProduct").addEventListener("change", calculateCariPrice);
-  document.getElementById("cariAmount").addEventListener("input", calculateCariPrice);
 };
 </script>
 </head>
@@ -1742,200 +1653,120 @@ window.onload = function() {
     </div>
   </div>
   
-  <!-- Sekmeler -->
-  <div class="tabs">
-    <button class="tab-btn active" data-tab="fiyat-tab" onclick="switchTab('fiyat-tab')">
-      <i class="fas fa-calculator"></i> Fiyat Hesapla
-    </button>
-    <button class="tab-btn" data-tab="cari-tab" onclick="switchTab('cari-tab')">
-      <i class="fas fa-user-tag"></i> Cari Hesap
-    </button>
-  </div>
-  
-  <!-- Fiyat Hesaplama Sekmesi -->
-  <div id="fiyat-tab" class="tab-content active">
-    <div class="glass-panel">
-      <div class="panel-header">
-        <i class="fas fa-search-dollar"></i>
-        <h2>Fiyat Hesapla</h2>
+  <!-- Hesaplama Paneli -->
+  <div class="glass-panel">
+    <div class="panel-header">
+      <i class="fas fa-search-dollar"></i>
+      <h2>Fiyat Hesapla</h2>
+    </div>
+    
+    <!-- Ürün Seçimi -->
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label"><i class="fas fa-box"></i> Ürün Seçimi*</label>
+        <div id="loading-indicator" class="loading-indicator">
+          <div class="spinner"></div>
+          <span>Ürünler yükleniyor...</span>
+        </div>
+        <div id="product-select-container" style="display: none;">
+          <select id="product" class="glass-input">
+            <option value="">Ürün Seçin</option>
+          </select>
+        </div>
       </div>
       
-      <!-- Ürün Seçimi -->
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label"><i class="fas fa-box"></i> Ürün Seçimi*</label>
-          <div id="loading-indicator" class="loading-indicator">
-            <div class="spinner"></div>
-            <span>Ürünler yükleniyor...</span>
-          </div>
-          <div id="product-select-container" style="display: none;">
-            <select id="product" class="glass-input">
-              <option value="">Ürün Seçin</option>
-            </select>
-          </div>
-        </div>
-        
-        <div class="form-group">
-          <label class="form-label"><i class="fas fa-hashtag"></i> Miktar*</label>
-          <div class="amount-controls">
-            <div class="amount-input-container">
-              <button class="amount-btn" onclick="decrementAmount()">
-                <i class="fas fa-minus"></i>
-              </button>
-              <input type="number" id="amount" class="glass-input" placeholder="Miktar girin" min="1">
-              <button class="amount-btn" onclick="incrementAmount()">
-                <i class="fas fa-plus"></i>
-              </button>
-            </div>
-            <button class="reset-btn" onclick="resetAmount()">
-              <i class="fas fa-redo"></i> Sıfırla
+      <div class="form-group">
+        <label class="form-label"><i class="fas fa-hashtag"></i> Miktar*</label>
+        <div class="amount-controls">
+          <div class="amount-input-container">
+            <button class="amount-btn" onclick="decrementAmount()">
+              <i class="fas fa-minus"></i>
+            </button>
+            <input type="number" id="amount" class="glass-input" placeholder="Miktar girin" min="1">
+            <button class="amount-btn" onclick="incrementAmount()">
+              <i class="fas fa-plus"></i>
             </button>
           </div>
-          
-          <!-- Hızlı Ekleme Butonları -->
-          <div class="quick-add-section">
-            <div class="quick-add-title">
-              <i class="fas fa-bolt"></i> Hızlı Miktar Ekle
-            </div>
-            <div class="quick-add-buttons">
-              <button class="quick-add-btn" onclick="quickAdd(10)">
-                <i class="fas fa-plus-circle"></i> 10
-              </button>
-              <button class="quick-add-btn" onclick="quickAdd(50)">
-                <i class="fas fa-plus-circle"></i> 50
-              </button>
-              <button class="quick-add-btn" onclick="quickAdd(100)">
-                <i class="fas fa-plus-circle"></i> 100
-              </button>
-              <button class="quick-add-btn" onclick="quickAdd(500)">
-                <i class="fas fa-plus-circle"></i> 500
-              </button>
-              <button class="quick-add-btn" onclick="quickAdd(1000)">
-                <i class="fas fa-plus-circle"></i> 1000
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Sepete Ekle Butonu -->
-      <button class="action-btn" onclick="addToCart()">
-        <i class="fas fa-cart-plus"></i> Sepete Ekle
-      </button>
-      
-      <!-- Hesaplama Sonuçları -->
-      <div class="glass-panel results-panel">
-        <div class="panel-header">
-          <i class="fas fa-chart-line"></i>
-          <h2>Hesaplama Sonuçları</h2>
-        </div>
-        
-        <div class="results-grid">
-          <div class="result-card unit-price">
-            <div class="result-label">
-              <i class="fas fa-tag"></i> Birim Fiyat
-            </div>
-            <div class="result-value">
-              <span id="unitPrice">-</span>
-              <span class="result-unit">₺ / <span id="unitDisplay">-</span></span>
-            </div>
-          </div>
-          
-          <div class="result-card">
-            <div class="result-label">
-              <i class="fas fa-cube"></i> Miktar
-            </div>
-            <div class="result-value">
-              <span id="amountDisplay">-</span>
-              <span class="result-unit" id="unitDisplay2">-</span>
-            </div>
-          </div>
-          
-          <div class="result-card total-price">
-            <div class="result-label">
-              <i class="fas fa-receipt"></i> Toplam Tutar
-            </div>
-            <div class="result-value">
-              <span id="total">-</span>
-              <span class="result-unit">₺</span>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Kademe Bilgisi -->
-        <div id="tierInfo"></div>
-      </div>
-      
-      <!-- Sepet Paneli -->
-      <div class="glass-panel" id="cartPanel" style="display: none;">
-        <div class="panel-header">
-          <i class="fas fa-shopping-cart"></i>
-          <h2>Sepetiniz</h2>
-          <button class="reset-btn" onclick="clearCart()" style="margin-left: auto;">
-            <i class="fas fa-trash"></i> Sepeti Temizle
+          <button class="reset-btn" onclick="resetAmount()">
+            <i class="fas fa-redo"></i> Sıfırla
           </button>
         </div>
         
-        <div class="table-container">
-          <table class="cart-table">
-            <thead>
-              <tr>
-                <th>Ürün Adı</th>
-                <th>Miktar</th>
-                <th>Birim Fiyat</th>
-                <th>Toplam</th>
-                <th>İşlem</th>
-              </tr>
-            </thead>
-            <tbody id="cartTableBody">
-              <!-- Sepet öğeleri buraya gelecek -->
-            </tbody>
-          </table>
+        <!-- Hızlı Ekleme Butonları -->
+        <div class="quick-add-section">
+          <div class="quick-add-title">
+            <i class="fas fa-bolt"></i> Hızlı Miktar Ekle
+          </div>
+          <div class="quick-add-buttons">
+            <button class="quick-add-btn" onclick="quickAdd(10)">
+              <i class="fas fa-plus-circle"></i> 10
+            </button>
+            <button class="quick-add-btn" onclick="quickAdd(50)">
+              <i class="fas fa-plus-circle"></i> 50
+            </button>
+            <button class="quick-add-btn" onclick="quickAdd(100)">
+              <i class="fas fa-plus-circle"></i> 100
+            </button>
+            <button class="quick-add-btn" onclick="quickAdd(500)">
+              <i class="fas fa-plus-circle"></i> 500
+            </button>
+            <button class="quick-add-btn" onclick="quickAdd(1000)">
+              <i class="fas fa-plus-circle"></i> 1000
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Sepete Ekle Butonu -->
+    <button class="action-btn" onclick="addToCart()">
+      <i class="fas fa-cart-plus"></i> Sepete Ekle
+    </button>
+    
+    <!-- Hesaplama Sonuçları -->
+    <div class="glass-panel results-panel">
+      <div class="panel-header">
+        <i class="fas fa-chart-line"></i>
+        <h2>Hesaplama Sonuçları</h2>
+      </div>
+      
+      <div class="results-grid">
+        <div class="result-card unit-price">
+          <div class="result-label">
+            <i class="fas fa-tag"></i> Birim Fiyat
+          </div>
+          <div class="result-value">
+            <span id="unitPrice">-</span>
+            <span class="result-unit">₺ / <span id="unitDisplay">-</span></span>
+          </div>
         </div>
         
-        <div class="results-grid" style="margin-top: 24px;">
-          <div class="result-card total-price">
-            <div class="result-label">
-              <i class="fas fa-receipt"></i> Sepet Toplamı
-            </div>
-            <div class="result-value">
-              <span id="cartTotal">0.00</span>
-              <span class="result-unit">₺</span>
-            </div>
+        <div class="result-card">
+          <div class="result-label">
+            <i class="fas fa-cube"></i> Miktar
+          </div>
+          <div class="result-value">
+            <span id="amountDisplay">-</span>
+            <span class="result-unit" id="unitDisplay2">-</span>
+          </div>
+        </div>
+        
+        <div class="result-card total-price">
+          <div class="result-label">
+            <i class="fas fa-receipt"></i> Toplam Tutar
+          </div>
+          <div class="result-value">
+            <span id="total">-</span>
+            <span class="result-unit">₺</span>
           </div>
         </div>
       </div>
       
-      <!-- Kademe Tablosu -->
-      <div class="table-container">
-        <div class="panel-header">
-          <i class="fas fa-list-ol"></i>
-          <h2>Ürün Kademeleri</h2>
-        </div>
-        
-        <table class="tiers-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Miktar Aralığı</th>
-              <th>Birim Fiyat</th>
-              <th>Uygulanan</th>
-            </tr>
-          </thead>
-          <tbody id="tiersTableBody">
-            <tr>
-              <td colspan="4" style="text-align: center; padding: 40px; color: var(--text-secondary);">
-                <i class="fas fa-info-circle"></i> Ürün seçerek kademe bilgilerini görüntüleyin
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <!-- Kademe Bilgisi -->
+      <div id="tierInfo"></div>
     </div>
-  </div>
-  
-  <!-- Cari Hesap Sekmesi -->
-  <div id="cari-tab" class="tab-content">
+    
+    <!-- CARİ HESAP BÖLÜMÜ -->
     <div class="glass-panel">
       <div class="panel-header">
         <i class="fas fa-user-tag"></i>
@@ -2037,6 +1868,72 @@ window.onload = function() {
           </tbody>
         </table>
       </div>
+    </div>
+    
+    <!-- Sepet Paneli -->
+    <div class="glass-panel" id="cartPanel" style="display: none;">
+      <div class="panel-header">
+        <i class="fas fa-shopping-cart"></i>
+        <h2>Sepetiniz</h2>
+        <button class="reset-btn" onclick="clearCart()" style="margin-left: auto;">
+          <i class="fas fa-trash"></i> Sepeti Temizle
+        </button>
+      </div>
+      
+      <div class="table-container">
+        <table class="cart-table">
+          <thead>
+            <tr>
+              <th>Ürün Adı</th>
+              <th>Miktar</th>
+              <th>Birim Fiyat</th>
+              <th>Toplam</th>
+              <th>İşlem</th>
+            </tr>
+          </thead>
+          <tbody id="cartTableBody">
+            <!-- Sepet öğeleri buraya gelecek -->
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="results-grid" style="margin-top: 24px;">
+        <div class="result-card total-price">
+          <div class="result-label">
+            <i class="fas fa-receipt"></i> Sepet Toplamı
+          </div>
+          <div class="result-value">
+            <span id="cartTotal">0.00</span>
+            <span class="result-unit">₺</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Kademe Tablosu -->
+    <div class="table-container">
+      <div class="panel-header">
+        <i class="fas fa-list-ol"></i>
+        <h2>Ürün Kademeleri</h2>
+      </div>
+      
+      <table class="tiers-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Miktar Aralığı</th>
+            <th>Birim Fiyat</th>
+            <th>Uygulanan</th>
+          </tr>
+        </thead>
+        <tbody id="tiersTableBody">
+          <tr>
+            <td colspan="4" style="text-align: center; padding: 40px; color: var(--text-secondary);">
+              <i class="fas fa-info-circle"></i> Ürün seçerek kademe bilgilerini görüntüleyin
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
   
